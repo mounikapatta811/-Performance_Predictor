@@ -1,0 +1,191 @@
+{
+  "model_version": "eduguard-random-forest-202610291053",
+  "model_type": "Random Forest",
+  "classes": [
+    "Dropout",
+    "Enrolled",
+    "Graduate"
+  ],
+  "numeric_features": [
+    "attendance_rate",
+    "internal_assessment_score",
+    "assignment_submission_rate",
+    "previous_semester_grade",
+    "failed_subjects_count",
+    "lms_activity_hours",
+    "curricular_units_1st_sem_approved",
+    "curricular_units_1st_sem_grade",
+    "curricular_units_2nd_sem_approved",
+    "curricular_units_2nd_sem_grade"
+  ],
+  "categorical_features": [
+    "department"
+  ],
+  "transformed_features": [
+    "num__attendance_rate",
+    "num__internal_assessment_score",
+    "num__assignment_submission_rate",
+    "num__previous_semester_grade",
+    "num__failed_subjects_count",
+    "num__lms_activity_hours",
+    "num__curricular_units_1st_sem_approved",
+    "num__curricular_units_1st_sem_grade",
+    "num__curricular_units_2nd_sem_approved",
+    "num__curricular_units_2nd_sem_grade",
+    "cat__department_Business Administration",
+    "cat__department_Computer Science & Engineering",
+    "cat__department_Design & Multimedia",
+    "cat__department_Electronics & Communication",
+    "cat__department_Information Technology",
+    "cat__department_Nursing & Health Sciences"
+  ],
+  "training_samples": 262,
+  "test_samples": 88,
+  "cv_folds": 5,
+  "cv_f1_macro_mean": 0.9365,
+  "cv_f1_macro_std": 0.0685,
+  "test_metrics": {
+    "accuracy": 0.9545,
+    "balanced_accuracy": 0.9489,
+    "precision_macro": 0.9306,
+    "recall_macro": 0.9489,
+    "f1_macro": 0.9376,
+    "precision_weighted": 0.9552,
+    "recall_weighted": 0.9545,
+    "f1_weighted": 0.954,
+    "roc_auc": 0.9936,
+    "confusion_matrix": [
+      [
+        7,
+        0,
+        0
+      ],
+      [
+        1,
+        19,
+        2
+      ],
+      [
+        0,
+        1,
+        58
+      ]
+    ],
+    "classes": [
+      "0",
+      "1",
+      "2"
+    ],
+    "classification_report": {
+      "0": {
+        "precision": 0.875,
+        "recall": 1.0,
+        "f1-score": 0.9333333333333333,
+        "support": 7.0
+      },
+      "1": {
+        "precision": 0.95,
+        "recall": 0.8636363636363636,
+        "f1-score": 0.9047619047619048,
+        "support": 22.0
+      },
+      "2": {
+        "precision": 0.9666666666666667,
+        "recall": 0.9830508474576272,
+        "f1-score": 0.9747899159663865,
+        "support": 59.0
+      },
+      "accuracy": 0.9545454545454546,
+      "macro avg": {
+        "precision": 0.9305555555555555,
+        "recall": 0.9488957370313303,
+        "f1-score": 0.9376283846872083,
+        "support": 88.0
+      },
+      "weighted avg": {
+        "precision": 0.9552083333333333,
+        "recall": 0.9545454545454546,
+        "f1-score": 0.9539852304558187,
+        "support": 88.0
+      }
+    },
+    "class_labels": [
+      "Dropout",
+      "Enrolled",
+      "Graduate"
+    ]
+  },
+  "train_metrics": {
+    "accuracy": 0.9962,
+    "balanced_accuracy": 0.9981,
+    "precision_macro": 0.9949,
+    "recall_macro": 0.9981,
+    "f1_macro": 0.9965,
+    "precision_weighted": 0.9962,
+    "recall_weighted": 0.9962,
+    "f1_weighted": 0.9962,
+    "roc_auc": 1.0,
+    "confusion_matrix": [
+      [
+        20,
+        0,
+        0
+      ],
+      [
+        0,
+        64,
+        0
+      ],
+      [
+        0,
+        1,
+        177
+      ]
+    ],
+    "classes": [
+      "0",
+      "1",
+      "2"
+    ],
+    "classification_report": {
+      "0": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 20.0
+      },
+      "1": {
+        "precision": 0.9846153846153847,
+        "recall": 1.0,
+        "f1-score": 0.9922480620155039,
+        "support": 64.0
+      },
+      "2": {
+        "precision": 1.0,
+        "recall": 0.9943820224719101,
+        "f1-score": 0.9971830985915493,
+        "support": 178.0
+      },
+      "accuracy": 0.9961832061068703,
+      "macro avg": {
+        "precision": 0.9948717948717949,
+        "recall": 0.99812734082397,
+        "f1-score": 0.9964770535356844,
+        "support": 262.0
+      },
+      "weighted avg": {
+        "precision": 0.9962419260129184,
+        "recall": 0.9961832061068703,
+        "f1-score": 0.9961926241156032,
+        "support": 262.0
+      }
+    },
+    "class_labels": [
+      "Dropout",
+      "Enrolled",
+      "Graduate"
+    ]
+  },
+  "training_timestamp": "2026-10-29T10:53:56.899405",
+  "random_state": 42
+}
