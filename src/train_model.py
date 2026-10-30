@@ -78,7 +78,19 @@ def train_academic_model(
     """
     MODELS_DIR.mkdir(parents=True, exist_ok=True)
 
-    # Encode target labels if string or object
+    # Target label validation & cleanup
+    valid_mask = y.notnull()
+    if valid_mask.sum() < len(y):
+        X = X[valid_mask].copy()
+        y = y[valid_mask].copy()
+
+    unique_targets = pd.Series(y).unique()
+    if len(unique_targets) < 2:
+        raise ValueError(
+            f"Target column must contain at least 2 distinct classes. Found {len(unique_targets)}: {list(unique_targets)}"
+        )
+
+    # Encode target labels
     label_encoder = LabelEncoder()
     y_encoded = label_encoder.fit_transform(y)
     classes = [str(c) for c in label_encoder.classes_]
@@ -101,11 +113,19 @@ def train_academic_model(
         ("classifier", classifier)
     ])
 
-    # Cross-validation on training data only (Zero Leakage!)
-    cv = StratifiedKFold(n_splits=min(cv_folds, np.min(np.bincount(y_train))), shuffle=True, random_state=random_state)
-    cv_scores = cross_val_score(pipeline, X_train, y_train, cv=cv, scoring="f1_macro")
-    cv_mean = float(np.mean(cv_scores))
-    cv_std = float(np.std(cv_scores))
+    # Cross-validation on training data only (Zero Leakage, safe against small samples)
+    min_class_count = int(np.min(np.bincount(y_train)))
+    if min_class_count >= 2:
+        actual_cv_splits = min(cv_folds, min_class_count)
+        cv = StratifiedKFold(n_splits=actual_cv_splits, shuffle=True, random_state=random_state)
+        cv_scores = cross_val_score(pipeline, X_train, y_train, cv=cv, scoring="f1_macro")
+        cv_mean = float(np.mean(cv_scores))
+        cv_std = float(np.std(cv_scores))
+        cv_status = f"Stratified {actual_cv_splits}-Fold Cross-Validation"
+    else:
+        cv_mean = 0.0
+        cv_std = 0.0
+        cv_status = "Sample size per class is too small for cross-validation"
 
     # Fit final pipeline on training set
     pipeline.fit(X_train, y_train)
@@ -124,6 +144,10 @@ def train_academic_model(
     test_eval["class_labels"] = classes
     train_eval["class_labels"] = classes
 
+    # Compute class distribution in train and test sets
+    train_counts_named = {classes[int(k)]: v for k, v in train_eval.get("class_counts", {}).items() if int(k) < len(classes)}
+    test_counts_named = {classes[int(k)]: v for k, v in test_eval.get("class_counts", {}).items() if int(k) < len(classes)}
+
     # Feature names after preprocessing
     fitted_preprocessor = pipeline.named_steps["preprocessor"]
     transformed_features = get_feature_names_out(fitted_preprocessor, numeric_features, categorical_features)
@@ -139,7 +163,10 @@ def train_academic_model(
         "transformed_features": transformed_features,
         "training_samples": len(X_train),
         "test_samples": len(X_test),
+        "train_class_distribution": train_counts_named,
+        "test_class_distribution": test_counts_named,
         "cv_folds": cv_folds,
+        "cv_status": cv_status,
         "cv_f1_macro_mean": round(cv_mean, 4),
         "cv_f1_macro_std": round(cv_std, 4),
         "test_metrics": test_eval,

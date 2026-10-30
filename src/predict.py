@@ -10,6 +10,24 @@ from scipy.stats import entropy
 
 from config import DEFAULT_RISK_THRESHOLDS
 
+def _align_input_features(pipeline, df: pd.DataFrame) -> pd.DataFrame:
+    """Ensure all numeric and categorical columns expected by the pipeline exist in df."""
+    aligned_df = df.copy()
+    if hasattr(pipeline, "named_steps") and "preprocessor" in pipeline.named_steps:
+        prep = pipeline.named_steps["preprocessor"]
+        for trans in getattr(prep, "transformers_", []):
+            name, step, cols = trans[0], trans[1], trans[2]
+            if name == "remainder":
+                continue
+            if isinstance(cols, list):
+                for col in cols:
+                    if col not in aligned_df.columns:
+                        if name == "num":
+                            aligned_df[col] = 0.0
+                        else:
+                            aligned_df[col] = "Unknown"
+    return aligned_df
+
 def calculate_student_risk(
     class_probabilities: Dict[str, float],
     thresholds: Dict[str, float] = None
@@ -55,8 +73,9 @@ def predict_single_student(
     """
     Generate inference, risk assessment, and uncertainty metrics for an individual student.
     """
-    # Create single-row DataFrame
-    input_df = pd.DataFrame([student_dict])
+    # Create single-row DataFrame and align features
+    raw_df = pd.DataFrame([student_dict])
+    input_df = _align_input_features(pipeline, raw_df)
     
     # Predict class and probabilities
     pred_idx = pipeline.predict(input_df)[0]
@@ -108,17 +127,18 @@ def predict_batch_students(
     Run batch inference over a DataFrame of multiple students.
     Returns DataFrame with appended prediction columns.
     """
+    aligned_df = _align_input_features(pipeline, df)
     results_df = df.copy()
     
     # Predict
-    preds_idx = pipeline.predict(df)
+    preds_idx = pipeline.predict(aligned_df)
     predicted_labels = label_encoder.inverse_transform(preds_idx)
     results_df["predicted_outcome"] = predicted_labels
 
     classes = [str(c) for c in label_encoder.classes_]
     
     if hasattr(pipeline, "predict_proba"):
-        probs = pipeline.predict_proba(df)
+        probs = pipeline.predict_proba(aligned_df)
         
         # Calculate risk scores for each row
         risk_scores = []

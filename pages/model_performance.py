@@ -7,7 +7,7 @@ import pandas as pd
 import json
 
 from src.train_model import load_trained_model
-from utils.visualization import plot_confusion_matrix
+from utils.visualization import plot_confusion_matrix, plot_roc_curves, plot_class_distribution
 from utils.styles import render_kpi_card
 
 def render():
@@ -114,6 +114,25 @@ def render():
         }
     ])
     st.table(comp_df)
+
+    # ROC Curves & Class Distribution
+    st.markdown("### 📊 ROC Curves & Cohort Class Representation")
+    curve_c1, curve_c2 = st.columns([1.1, 1])
+
+    with curve_c1:
+        roc_data = test_metrics.get("roc_curves", {})
+        if roc_data:
+            st.plotly_chart(plot_roc_curves(roc_data), use_container_width=True)
+        else:
+            st.info("ROC curve coordinates are generated when class probability estimates are available.")
+
+    with curve_c2:
+        train_dist = metadata.get("train_class_distribution", {})
+        test_dist = metadata.get("test_class_distribution", {})
+        if train_dist or test_dist:
+            st.plotly_chart(plot_class_distribution(train_dist, test_dist, classes), use_container_width=True)
+        else:
+            st.info("Class distribution data available upon model training.")
 
     # Model Features & Transformation Parameters
     with st.expander("🛠️ Active Preprocessing Pipeline & Feature Configuration"):

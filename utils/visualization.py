@@ -135,25 +135,65 @@ def plot_longitudinal_risk_trend(history_df: pd.DataFrame, student_id: str = Non
     """Plot longitudinal risk trajectories across weekly/monthly observation checkpoints."""
     if history_df.empty:
         fig = go.Figure()
-        fig.add_annotation(text="No longitudinal history records available yet.", showarrow=False)
+        fig.add_annotation(
+            text="No longitudinal history records available yet.<br>Load demo data or record predictions over multiple timepoints.",
+            showarrow=False,
+            font=dict(size=13, color="#64748B")
+        )
+        fig.update_layout(**LAYOUT_TEMPLATE)
         return fig
 
     fig = go.Figure()
 
     if student_id:
         sub_df = history_df[history_df["student_id"] == student_id].sort_values("prediction_date")
+        if len(sub_df) == 0:
+            fig.add_annotation(
+                text=f"No prediction history recorded for Student <b>{student_id}</b>.",
+                showarrow=False,
+                font=dict(size=13, color="#64748B")
+            )
+            fig.update_layout(**LAYOUT_TEMPLATE)
+            return fig
+        elif len(sub_df) == 1:
+            obs_date = sub_df["prediction_date"].iloc[0]
+            obs_score = sub_df["risk_score"].iloc[0] * 100
+            obs_cat = sub_df["risk_category"].iloc[0]
+            fig.add_annotation(
+                text=f"<b>Longitudinal data not yet available for Student {student_id}</b><br>"
+                     f"Only 1 observation recorded on <b>{obs_date}</b> (Risk: {obs_score:.1f}% — {obs_cat}).<br>"
+                     f"At least two observation checkpoints are needed to display a trajectory trend.",
+                showarrow=False,
+                font=dict(size=13, color="#1E3A8A")
+            )
+            fig.update_layout(**LAYOUT_TEMPLATE)
+            return fig
+
+        # Multiple points: plot line and mark retrospective vs live
+        is_retro = "is_retrospective" in sub_df.columns and sub_df["is_retrospective"].any()
+        retro_note = " (Retrospective Demo Data)" if is_retro else " (Live Tracking)"
+        
         fig.add_trace(go.Scatter(
             x=sub_df["prediction_date"],
             y=sub_df["risk_score"] * 100,
             mode="lines+markers",
             line=dict(color=COLORS["navy_primary"], width=3),
-            marker=dict(size=8, color=COLORS["teal_primary"]),
+            marker=dict(size=9, color=COLORS["teal_primary"]),
             name=f"Student {student_id}"
         ))
-        title_text = f"<b>Longitudinal Risk Trajectory: {student_id}</b>"
+        title_text = f"<b>Longitudinal Risk Trajectory: {student_id}</b>{retro_note}"
     else:
         # Aggregate average institutional trend
         agg = history_df.groupby("prediction_date")["risk_score"].agg(["mean", "count"]).reset_index()
+        if len(agg) < 2:
+            fig.add_annotation(
+                text="Longitudinal trend tracking requires observations across at least 2 distinct evaluation dates.",
+                showarrow=False,
+                font=dict(size=13, color="#64748B")
+            )
+            fig.update_layout(**LAYOUT_TEMPLATE)
+            return fig
+
         fig.add_trace(go.Scatter(
             x=agg["prediction_date"],
             y=agg["mean"] * 100,
@@ -165,13 +205,13 @@ def plot_longitudinal_risk_trend(history_df: pd.DataFrame, student_id: str = Non
         title_text = "<b>Cohort Weekly Academic Risk Trajectory</b>"
 
     # Threshold horizontal reference zones
-    fig.add_hline(y=65.0, line_dash="dot", line_color=COLORS["danger"], annotation_text="High Risk (65%)")
-    fig.add_hline(y=35.0, line_dash="dot", line_color=COLORS["warning"], annotation_text="Moderate Risk (35%)")
+    fig.add_hline(y=65.0, line_dash="dot", line_color=COLORS["danger"], annotation_text="High Risk Threshold (65%)")
+    fig.add_hline(y=35.0, line_dash="dot", line_color=COLORS["warning"], annotation_text="Moderate Risk Threshold (35%)")
 
     fig.update_layout(
         **LAYOUT_TEMPLATE,
         title=dict(text=title_text, font=dict(size=15, color="#1E3A8A")),
-        xaxis_title="Evaluation Date",
+        xaxis_title="Evaluation Checkpoint Date",
         yaxis_title="Estimated Risk Score (%)",
         yaxis=dict(range=[0, 100], showgrid=True, gridcolor="#F1F5F9")
     )
@@ -276,5 +316,79 @@ def plot_group_fairness(fairness_dict: Dict[str, Any]) -> go.Figure:
         barmode="group",
         yaxis=dict(title="Percentage (%)", range=[0, 105], showgrid=True, gridcolor="#F1F5F9"),
         legend=dict(orientation="h", yanchor="bottom", y=-0.25, xanchor="center", x=0.5)
+    )
+    return fig
+
+def plot_roc_curves(roc_curves_dict: Dict[str, Dict[str, Any]]) -> go.Figure:
+    """Plot multiclass or binary ROC curves with diagonal reference line."""
+    if not roc_curves_dict:
+        fig = go.Figure()
+        fig.add_annotation(text="ROC curve coordinates not available.", showarrow=False)
+        fig.update_layout(**LAYOUT_TEMPLATE)
+        return fig
+
+    fig = go.Figure()
+    palette = [COLORS["navy_primary"], COLORS["teal_primary"], COLORS["warning"], COLORS["danger"]]
+
+    for i, (cls_name, curve) in enumerate(roc_curves_dict.items()):
+        color = palette[i % len(palette)]
+        auc_val = curve.get("auc", 0.0)
+        fig.add_trace(go.Scatter(
+            x=curve.get("fpr", []),
+            y=curve.get("tpr", []),
+            mode="lines",
+            line=dict(color=color, width=2.5),
+            name=f"{cls_name} (AUC = {auc_val:.3f})"
+        ))
+
+    # Diagonal reference line (random guess baseline)
+    fig.add_trace(go.Scatter(
+        x=[0, 1],
+        y=[0, 1],
+        mode="lines",
+        line=dict(color="#94A3B8", dash="dash", width=1.5),
+        name="Random Classifier (AUC = 0.500)",
+        hoverinfo="skip"
+    ))
+
+    fig.update_layout(
+        **LAYOUT_TEMPLATE,
+        title=dict(text="<b>Receiver Operating Characteristic (ROC) Curves</b>", font=dict(size=15, color="#1E3A8A")),
+        xaxis=dict(title="False Positive Rate (1 - Specificity)", range=[0, 1.02], showgrid=True, gridcolor="#F1F5F9"),
+        yaxis=dict(title="True Positive Rate (Sensitivity / Recall)", range=[0, 1.02], showgrid=True, gridcolor="#F1F5F9"),
+        legend=dict(orientation="h", yanchor="bottom", y=-0.28, xanchor="center", x=0.5),
+        width=550,
+        height=450
+    )
+    return fig
+
+def plot_class_distribution(train_dist: Dict[str, int], test_dist: Dict[str, int], classes: List[str]) -> go.Figure:
+    """Plot grouped bar chart of class distribution in train vs test sets."""
+    fig = go.Figure()
+    classes_list = [str(c) for c in classes]
+    train_vals = [train_dist.get(c, 0) for c in classes_list]
+    test_vals = [test_dist.get(c, 0) for c in classes_list]
+
+    fig.add_trace(go.Bar(
+        x=classes_list,
+        y=train_vals,
+        name="Training Split",
+        marker_color=COLORS["navy_primary"]
+    ))
+    fig.add_trace(go.Bar(
+        x=classes_list,
+        y=test_vals,
+        name="Holdout Test Split",
+        marker_color=COLORS["teal_accent"]
+    ))
+
+    fig.update_layout(
+        **LAYOUT_TEMPLATE,
+        title=dict(text="<b>Class Distribution (Stratified Train vs. Test)</b>", font=dict(size=15, color="#1E3A8A")),
+        barmode="group",
+        xaxis=dict(title="Target Outcome Class"),
+        yaxis=dict(title="Number of Student Records", showgrid=True, gridcolor="#F1F5F9"),
+        legend=dict(orientation="h", yanchor="bottom", y=-0.22, xanchor="center", x=0.5),
+        height=380
     )
     return fig

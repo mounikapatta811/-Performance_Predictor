@@ -13,7 +13,10 @@ from sklearn.metrics import (
     confusion_matrix,
     classification_report,
     roc_auc_score,
+    roc_curve,
+    auc
 )
+from sklearn.preprocessing import label_binarize
 
 def evaluate_classifier(
     y_true: np.ndarray,
@@ -23,6 +26,8 @@ def evaluate_classifier(
 ) -> Dict[str, Any]:
     """
     Compute rigorous evaluation metrics without overstating model performance.
+    Includes confusion matrix, classification report, multiclass ROC-AUC,
+    and ROC curve coordinates.
     """
     classes_list = list(classes) if classes is not None else sorted(list(set(y_true)))
     n_classes = len(classes_list)
@@ -53,18 +58,24 @@ def evaluate_classifier(
         zero_division=0
     )
 
-    # ROC-AUC calculation if probabilities are available
+    # ROC-AUC calculation & ROC curve coordinates if probabilities are available
     roc_auc_val = None
+    roc_curves_data = {}
     if y_prob is not None:
         try:
             if n_classes == 2:
                 # Binary classification
-                # Use probability of positive class
                 if y_prob.ndim == 2:
                     prob_pos = y_prob[:, 1]
                 else:
                     prob_pos = y_prob
                 roc_auc_val = float(roc_auc_score(y_true, prob_pos))
+                fpr, tpr, _ = roc_curve(y_true, prob_pos)
+                roc_curves_data[str(classes_list[1])] = {
+                    "fpr": [round(float(x), 4) for x in fpr],
+                    "tpr": [round(float(x), 4) for x in tpr],
+                    "auc": round(float(roc_auc_val), 4)
+                }
             else:
                 # Multiclass classification: One-vs-Rest ROC-AUC
                 roc_auc_val = float(roc_auc_score(
@@ -74,8 +85,25 @@ def evaluate_classifier(
                     average="macro",
                     labels=classes_list
                 ))
+                # Compute per-class ROC curves
+                y_true_bin = label_binarize(y_true, classes=classes_list)
+                for i, cls_name in enumerate(classes_list):
+                    fpr, tpr, _ = roc_curve(y_true_bin[:, i], y_prob[:, i])
+                    cls_auc = float(auc(fpr, tpr))
+                    # Subsample points if too many for clean JSON storage
+                    step = max(1, len(fpr) // 50)
+                    roc_curves_data[str(cls_name)] = {
+                        "fpr": [round(float(x), 4) for x in fpr[::step]],
+                        "tpr": [round(float(x), 4) for x in tpr[::step]],
+                        "auc": round(cls_auc, 4)
+                    }
         except Exception:
             roc_auc_val = None
+            roc_curves_data = {}
+
+    # Class support counts
+    unique_labels, counts = np.unique(y_true, return_counts=True)
+    class_counts = {str(k): int(v) for k, v in zip(unique_labels, counts)}
 
     return {
         "accuracy": round(acc, 4),
@@ -87,7 +115,9 @@ def evaluate_classifier(
         "recall_weighted": round(rec_weighted, 4),
         "f1_weighted": round(f1_weighted, 4),
         "roc_auc": round(roc_auc_val, 4) if roc_auc_val is not None else None,
+        "roc_curves": roc_curves_data,
         "confusion_matrix": cm_list,
         "classes": [str(c) for c in classes_list],
+        "class_counts": class_counts,
         "classification_report": report
     }

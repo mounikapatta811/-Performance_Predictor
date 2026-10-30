@@ -260,6 +260,20 @@ def get_recommendations_by_student(student_id: str) -> List[Dict[str, Any]]:
         )
         return [dict(row) for row in cur.fetchall()]
 
+def get_all_recommendations() -> pd.DataFrame:
+    """Retrieve all recommendations across all students with student metadata."""
+    with get_connection() as conn:
+        df = pd.read_sql_query(
+            """
+            SELECT r.*, s.name as student_name, s.department, s.risk_level
+            FROM recommendations r
+            LEFT JOIN students s ON r.student_id = s.student_id
+            ORDER BY r.id DESC
+            """,
+            conn
+        )
+    return df
+
 def update_recommendation_status(rec_id: int, status: str, mentor_notes: Optional[str] = None) -> bool:
     """Update status of a recommendation (Accepted, Modified, Completed, Dismissed)."""
     with get_connection() as conn:

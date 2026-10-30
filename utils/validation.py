@@ -11,6 +11,17 @@ from config import STANDARD_ACADEMIC_FIELDS, SENSITIVE_ATTRIBUTES
 # Fields that should never be used as predictive features
 PROTECTED_IDENTIFIERS = ["student_id", "id", "roll_no", "registration_no", "name", "email", "phone"]
 
+def validate_file_size(file_obj, max_mb: float = 50.0) -> bool:
+    """
+    Validate that an uploaded file does not exceed institutional upload limits.
+    Prevents memory exhaustion and Denial-of-Service.
+    """
+    if hasattr(file_obj, "size"):
+        size_mb = file_obj.size / (1024 * 1024)
+        if size_mb > max_mb:
+            raise ValueError(f"Uploaded file size ({size_mb:.1f} MB) exceeds maximum allowed limit of {max_mb:.0f} MB.")
+    return True
+
 def generate_data_quality_report(df: pd.DataFrame, target_col: str = "target") -> Dict[str, Any]:
     """
     Run comprehensive data quality checks on an academic dataframe.

@@ -58,3 +58,21 @@ def test_model_training_and_inference():
     assert len(batch_res) == 5
     assert "risk_score" in batch_res.columns
     assert "risk_category" in batch_res.columns
+
+def test_logistic_regression_training():
+    df = generate_synthetic_academic_dataset(n_samples=50, random_state=42)
+    X, y, num_cols, cat_cols = separate_features_and_target(df, target_col="target")
+
+    res = train_academic_model(
+        X=X,
+        y=y,
+        numeric_features=num_cols,
+        categorical_features=cat_cols,
+        model_type="Logistic Regression",
+        test_size=0.25,
+        random_state=42,
+        cv_folds=3
+    )
+    assert res["pipeline"] is not None
+    assert res["metadata"]["model_type"] == "Logistic Regression"
+    assert "f1_macro" in res["metadata"]["test_metrics"]

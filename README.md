@@ -177,9 +177,27 @@ EduGuard AI implements Explainable AI using SHAP:
 
 ---
 
+## 🔮 Limitations & Future Enhancements
+
+### Current Operational Scope & Limitations:
+1. **Correlation vs. Causation:** All model associations represent statistical correlation identified within cohort trends. Predictive flags indicate students who may benefit from academic engagement, not deterministic destiny or biological causation.
+2. **Local Academic Demonstration Environment:** SQLite is utilized for localized persistence and seamless portability. For enterprise multi-institution deployments, a managed relational database (e.g., PostgreSQL or Cloud SQL) with role-based SSO (OIDC/SAML) is recommended.
+3. **Data Availability Dependency:** The fidelity of risk estimates is directly bounded by the frequency and consistency of institutional data entry (attendance logging, assignment grading).
+
+### Planned Enhancements:
+- **LMS API Webhooks:** Direct event streaming connectors for Canvas LMS, Moodle, and Blackboard.
+- **Multilingual Support:** Localization into Spanish, Portuguese, and French for global university partner deployments.
+- **Automated Early Warning Notifications:** Automated Slack/Teams notifications for assigned faculty advisors when students exhibit risk increases exceeding 15%.
+- **Reinforcement Learning with Human Feedback (RLHF):** Continuous calibration of action recommendations based on mentor acceptance and student graduation rates.
+
+---
+
 ## 📊 Evaluation & Verification Summary
 
-- **Pipeline Integrity:** Stratified train/test splits ensure no data leakage during imputation or scaling.
+- **Pipeline Integrity:** Stratified train/test splits ensure strict zero data leakage during imputation, scaling, and cross-validation.
 - **Class Imbalance:** Handled via `class_weight='balanced'` and multiclass One-vs-Rest ROC-AUC.
-- **Unit Test Coverage:** 100% pass rate across 7 unit test suites covering database persistence, preprocessing, model inference, and recommendation logic.
-- **Live Health Status:** Streamlit web server verified with HTTP 200 response on port 8501.
+- **Unit Test Coverage:** 100% pass rate across 18 automated unit test suites covering database persistence, CSV/Excel loading, preprocessing, model inference, target validation, file size limits, export serialization, and recommendation logic.
+- **Automated Test Run Command:**
+  ```powershell
+  & .venv\Scripts\python.exe -m pytest tests -v
+  ```

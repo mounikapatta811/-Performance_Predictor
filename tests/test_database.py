@@ -35,7 +35,7 @@ def test_database_crud_and_privacy():
     assert retrieved["name"] == "Test Student"
     assert retrieved["attendance_rate"] == 78.5
 
-    # 2. Record intervention
+    # 2. Record & update intervention
     int_id = record_intervention(
         student_id="TEST-STU-001",
         category="Academic Tutoring",
@@ -46,8 +46,26 @@ def test_database_crud_and_privacy():
     assert int_id > 0
     ints = get_interventions_by_student("TEST-STU-001")
     assert len(ints) >= 1
+    
+    # Update intervention
+    from database.db import update_intervention, add_recommendation, get_all_recommendations, update_recommendation_status
+    upd_success = update_intervention(int_id, status="In Progress", notes="Student showed improvement.")
+    assert upd_success is True
 
-    # 3. Log prediction history
+    # 3. Add and update recommendation
+    rec_id = add_recommendation(
+        student_id="TEST-STU-001",
+        recommendation_text="Enroll in remedial physics classes.",
+        trigger_reason="Failed assessment 1",
+        priority="High"
+    )
+    assert rec_id > 0
+    all_recs = get_all_recommendations()
+    assert len(all_recs) >= 1
+    rec_upd = update_recommendation_status(rec_id, status="Accepted", mentor_notes="Assigned to tutor John.")
+    assert rec_upd is True
+
+    # 4. Log prediction history
     log_id = log_prediction(
         student_id="TEST-STU-001",
         prediction_date="2024-09-01",

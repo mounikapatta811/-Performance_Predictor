@@ -2,6 +2,7 @@
 EduGuard AI — Custom CSS & Design System
 Light theme featuring navy blue, white, and subtle teal accents.
 """
+from typing import Any
 
 CUSTOM_CSS = """
 <style>

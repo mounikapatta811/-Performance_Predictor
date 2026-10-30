@@ -14,6 +14,7 @@ from config import (
     UCI_COLUMN_MAPPINGS,
     DATA_DIR
 )
+from utils.validation import validate_file_size
 
 def generate_synthetic_academic_dataset(
     n_samples: int = 350,
@@ -169,6 +170,7 @@ def load_file(file_obj, filename: str) -> pd.DataFrame:
     """
     Load a CSV or Excel file safely, auto-detecting delimiters for CSV.
     """
+    validate_file_size(file_obj)
     if filename.endswith(".csv"):
         # Read raw bytes to detect delimiter
         content = file_obj.read()
