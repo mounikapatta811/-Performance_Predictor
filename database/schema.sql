@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS students (
     risk_level TEXT DEFAULT 'Low',
     risk_score REAL DEFAULT 0.15,
     latest_prediction TEXT DEFAULT 'Graduate',
+    target TEXT DEFAULT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

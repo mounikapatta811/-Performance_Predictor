@@ -4,9 +4,11 @@ In-depth cohort risk segmentation, multidimensional filters, and student directo
 """
 import streamlit as st
 import pandas as pd
+from datetime import datetime
 from database.db import get_all_students
 from utils.styles import render_kpi_card, render_risk_badge
 from utils.visualization import plot_attendance_vs_performance, plot_risk_distribution_donut
+from utils.export import dataframe_to_csv_bytes, dataframe_to_excel_bytes
 
 def render():
     st.markdown("## 🔍 Student Risk Analysis & Cohort Segmentation")
@@ -101,6 +103,25 @@ def render():
         use_container_width=True,
         hide_index=True
     )
+
+    # Export options for filtered cohort
+    exp_c1, exp_c2, _ = st.columns([1, 1, 2])
+    with exp_c1:
+        csv_data = dataframe_to_csv_bytes(filtered_df[present_cols])
+        st.download_button(
+            "📥 Export to CSV",
+            data=csv_data,
+            file_name=f"eduguard_cohort_filtered_{datetime.now().strftime('%Y%m%d_%H%M')}.csv",
+            mime="text/csv"
+        )
+    with exp_c2:
+        excel_data = dataframe_to_excel_bytes(filtered_df[present_cols])
+        st.download_button(
+            "📊 Export to Excel",
+            data=excel_data,
+            file_name=f"eduguard_cohort_filtered_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
 
     # Visual inspection of the filtered cohort
     if len(filtered_df) > 5:

@@ -15,7 +15,9 @@ from database.db import (
     get_students_count
 )
 
-def test_database_crud_and_privacy():
+def test_database_crud_and_privacy(tmp_path, monkeypatch):
+    test_db = tmp_path / "test_eduguard.db"
+    monkeypatch.setenv("EDUGUARD_DB_PATH", str(test_db))
     init_db()
     
     # 1. Upsert student
@@ -26,7 +28,8 @@ def test_database_crud_and_privacy():
         "attendance_rate": 78.5,
         "internal_assessment_score": 62.0,
         "risk_level": "Moderate",
-        "risk_score": 0.45
+        "risk_score": 0.45,
+        "target": "Enrolled"
     }
     upsert_student(test_student)
 
@@ -34,6 +37,7 @@ def test_database_crud_and_privacy():
     assert retrieved is not None
     assert retrieved["name"] == "Test Student"
     assert retrieved["attendance_rate"] == 78.5
+    assert retrieved["target"] == "Enrolled"
 
     # 2. Record & update intervention
     int_id = record_intervention(

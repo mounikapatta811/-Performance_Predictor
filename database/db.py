@@ -7,20 +7,29 @@ import json
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 import pandas as pd
+import os
 from datetime import datetime
 
 from config import DATABASE_PATH, DATABASE_DIR
 
+def get_db_path() -> Path:
+    """Return active database path, allowing environment override for testing isolation."""
+    env_path = os.environ.get("EDUGUARD_DB_PATH")
+    if env_path:
+        return Path(env_path)
+    return DATABASE_PATH
+
 def get_connection() -> sqlite3.Connection:
     """Return an active connection to the SQLite database with row factory enabled."""
-    DATABASE_DIR.mkdir(parents=True, exist_ok=True)
-    conn = sqlite3.connect(str(DATABASE_PATH), check_same_thread=False)
+    db_path = get_db_path()
+    db_path.parent.mkdir(parents=True, exist_ok=True)
+    conn = sqlite3.connect(str(db_path), check_same_thread=False)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON;")
     return conn
 
 def init_db():
-    """Initialize database tables using schema.sql."""
+    """Initialize database tables using schema.sql and apply incremental migrations."""
     schema_path = DATABASE_DIR / "schema.sql"
     if not schema_path.exists():
         raise FileNotFoundError(f"Schema file not found at {schema_path}")
@@ -30,6 +39,11 @@ def init_db():
 
     with get_connection() as conn:
         conn.executescript(schema_sql)
+        # Verify and apply incremental column migrations if needed
+        cursor = conn.cursor()
+        cols = [c[1] for c in cursor.execute("PRAGMA table_info(students)").fetchall()]
+        if "target" not in cols:
+            cursor.execute("ALTER TABLE students ADD COLUMN target TEXT DEFAULT NULL;")
         conn.commit()
 
 # --- Student Record Operations ---
@@ -43,7 +57,8 @@ def upsert_student(student_data: Dict[str, Any]) -> None:
         "curricular_units_1st_sem_approved", "curricular_units_1st_sem_grade",
         "curricular_units_2nd_sem_approved", "curricular_units_2nd_sem_grade",
         "gender", "scholarship_holder", "tuition_fees_up_to_date", "debtor",
-        "age_at_enrollment", "risk_level", "risk_score", "latest_prediction"
+        "age_at_enrollment", "risk_level", "risk_score", "latest_prediction",
+        "target"
     ]
     
     # Filter provided keys and supply defaults
